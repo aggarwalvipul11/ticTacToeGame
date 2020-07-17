@@ -2,7 +2,7 @@
 
 echo ">>>>>>>>>> TIC TAC TOE <<<<<<<<<<"
 
-SPACE=" "
+SPACE="."
 declare -A board
 
 
@@ -45,9 +45,9 @@ function getSymbolForPlayer {
 
 	if [ $((RANDOM%2)) -eq 1 ]
 	then
-		echo "X"
+		echo "X O"
 	else
-		echo "O"
+		echo "O X"
 	fi
 }
 
@@ -59,7 +59,7 @@ function checkIsRowEqual {
 	local column
 	for (( column=1;column<=2;column++ ))
 	do
-		if [ ${board[$row,$column]} != ${board[$row,$(($column+1))]} ] || [[ ${board[$row,$column]} = $SPACE ]]
+		if [[ ${board[$row,$column]} != ${board[$row,$(($column+1))]} ]] || [ "${board[$row,$column]}" = $SPACE ]
 		then
 			sameRow=0
 			break
@@ -76,7 +76,7 @@ function checkIsColumnEqual {
 	local row
 	for (( row=1;row<=2;row++ ))
 	do
-		if [ ${board[$row,$column]} != ${board[$(($row+1)),$column]} ] || [[ ${board[$row,$column]} = $SPACE ]]
+		if [[ ${board[$row,$column]} != ${board[$(($row+1)),$column]} ]] || [ "${board[$row,$column]}" = $SPACE ]
 		then
 			sameColumn=0
 			break
@@ -94,7 +94,7 @@ function isDiagonal_1_Equal {
 	then
 		for (( row=1;row<=2;row++ ))
 		do
-			if [ ${board[$row,$row]} != ${board[$(($row+1)),$(($row+1))]} ] || [[ ${board[$row,$column]} = $SPACE ]]
+			if [[ ${board[$row,$row]} != ${board[$(($row+1)),$(($row+1))]} ]] || [ ${board[$row,$row]} = $SPACE ]
 			then
 				sameDiagonal=0
 				break
@@ -114,7 +114,7 @@ function isDiagonal_2_Equal {
 	local sameDiagonal=1
 	for (( row=3,column=1;row>=2;row--,column++ ))
 	do
-		if [ ${board[$row,$column]} != ${board[$(($row-1)),$(($column+1))]} ] || [[ ${board[$row,$column]} = $SPACE ]]
+		if [[ ${board[$row,$column]} != ${board[$(($row-1)),$(($column+1))]} ]] || [ ${board[$row,$column]} = $SPACE ]
 			then
 				sameDiagonal=0
 				break
@@ -129,7 +129,6 @@ local row=$1
 local column=$2
 checkIsRowEqual $row
 local rowEqual=$?
-echo "column"$column
 checkIsColumnEqual $column
 local columnEqual=$?
 isDiagonal_1_Equal $row $column
@@ -154,7 +153,7 @@ function isTie {
 	do
 		for (( column=1;column<=3;column++ ))
 		do
-			if [[ "${board[$row,$column]}" = $SPACE ]]
+			if [ ${board[$row,$column]} = $SPACE ]
 			then
 				return 0
 			fi
@@ -182,12 +181,39 @@ fi
 echo "turn"
 }
 
-initialiseEmptyBoard
-displayBoard
-playerSymbol=$(getSymbolForPlayer)
-echo $playerSymbol
-chance=$(getSymbolForPlayer)
-echo "chance given to "$chance
+function checkIfComputerWins {
+	
+	local row
+	local column
+	for (( row=1;row<=3;row++ ))
+	do
+		for (( column=1;column<=3;column++ ))
+		do
+			if [ ${board[$row,$column]} = $SPACE ]
+			then		
+				board[$row,$column]=$computerSymbol
+				isWon $row $column
+				local won=$?
+				if [ $won -eq 1 ]
+				then
+					echo "$computerSymbol won"
+					return 1
+				else
+					board[$row,$column]=$SPACE
+				fi
+			fi
+		done
+	done
+	return 0
+}
 
-decision=$(getDecision 1 3)
-echo $decision
+
+initialiseEmptyBoard
+board[1,1]="X"
+board[3,3]="X"
+displayBoard
+read playerSymbol computerSymbol< <(getSymbolForPlayer)
+echo $playerSymbol $computerSymbol
+checkIfComputerWins
+win=$?
+echo $win
