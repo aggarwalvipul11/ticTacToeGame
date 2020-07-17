@@ -1,107 +1,193 @@
-#!/bin/bash 
+#!/bin/bash -x
 
-echo ">>>>>>>>>>>>>>>>>>>> TIC TAC TOE <<<<<<<<<<<<<<<<<<"
+echo ">>>>>>>>>> TIC TAC TOE <<<<<<<<<<"
 
-#CONSTANTS
-BOARD_BOX=9;
-DISTANCE=" ";
+SPACE=" "
+declare -A board
 
 
-#assign variables
-declare -a designBoard
-
-#Start with resetting the board
-function resetPlayerBoard() {
-	for ((boardCellsRow=1;boardCellsRow<=3;boardCellsRow++))
+function initialiseEmptyBoard {
+	local row
+	local column
+	for (( row=1;row<=3;row++))
 	do
-		for ((boardCellsColumn=1;boardCellsColumn<=3;boardCellsColumn++))
+		for (( column=1;column<=3;column++ ))
 		do
-			designBoard[$boardCellsRow,$boardCellsColumn]=$DISTANCE
+			board[$row,$column]=$SPACE
 		done
 	done
 }
 
-#Player would begins with toss check who plays first
-function playerToss() {
-	tossCheck=$((RANDOM%2))
-	if [[ $tossCheck -eq 1 ]]
+
+function displayBoard {
+	local row
+	local column
+	for (( row=1;row<=3;row++))
+	do
+		for (( column=1;column<=3;column++ ))
+		do
+			echo -n " ${board[$row,$column]}"
+			if [ $column -ne 3 ]
+			then
+				echo -n " |"
+			fi			
+		done
+		echo
+		if [ $row -ne 3 ]
+		then
+		echo -n "------------"
+		echo
+		fi
+	done
+}
+
+function getSymbolForPlayer {
+
+	if [ $((RANDOM%2)) -eq 1 ]
 	then
-		echo "Player wins toss, start the game."
+		echo "X"
 	else
-		echo "Robot wins toss, start the game."
+		echo "O"
 	fi
 }
 
-function selectionForLXandLO() {
-	playerToss
-	if [[ $tossCheck -eq 1 ]]
-	then
-		echo "Please choose game sign to play"
-		echo "Press 1 for X"
-		echo "Press 2 for O"
-		read symbolSelection
-		playerChanceChoose
-	else
-		echo "Robot wins, and choose the game sign"
-		computerChanceChoose
-	fi 
+
+function checkIsRowEqual {
+
+	local row=$1
+	local sameRow=1
+	local column
+	for (( column=1;column<=2;column++ ))
+	do
+		if [ ${board[$row,$column]} != ${board[$row,$(($column+1))]} ] || [[ ${board[$row,$column]} = $SPACE ]]
+		then
+			sameRow=0
+			break
+		fi
+	done
+	return $sameRow
+
+}
+
+function checkIsColumnEqual {
+
+	local column=$1
+	local sameColumn=1
+	local row
+	for (( row=1;row<=2;row++ ))
+	do
+		if [ ${board[$row,$column]} != ${board[$(($row+1)),$column]} ] || [[ ${board[$row,$column]} = $SPACE ]]
+		then
+			sameColumn=0
+			break
+		fi
+	done
+	return $sameColumn
+}
+
+function isDiagonal_1_Equal {
 	
-	#Display the symbols of game
-}
-
-function displayBoardBox() {
-	for ((boardCellsRow=1;boardCellsRow<=3;boardCellsRow++))
-	do
-		for ((boardCellsColumn=1;boardCellsColumn<=3;boardCellsColumn++))
+	local row=$1
+	local column=$2
+	local sameDiagonal=1
+	if [ $row -eq $column ]
+	then
+		for (( row=1;row<=2;row++ ))
 		do
-			echo " ${designBoard[$boardCellsRow,$boardCellsColumn]} "
-			columnDesign
+			if [ ${board[$row,$row]} != ${board[$(($row+1)),$(($row+1))]} ] || [[ ${board[$row,$column]} = $SPACE ]]
+			then
+				sameDiagonal=0
+				break
+			fi	
 		done
-		rowDesign
+	else
+		return 0
+	fi
+	return $sameDiagonal
+}
+
+
+function isDiagonal_2_Equal {
+
+	local row
+	local column
+	local sameDiagonal=1
+	for (( row=3,column=1;row>=2;row--,column++ ))
+	do
+		if [ ${board[$row,$column]} != ${board[$(($row-1)),$(($column+1))]} ] || [[ ${board[$row,$column]} = $SPACE ]]
+			then
+				sameDiagonal=0
+				break
+			fi		
 	done
+	return $sameDiagonal
 }
 
-function columnDesign() {
-	if [[ $boardCellsColumn -ne 3 ]]
-	then
-		echo " | "
-	fi
+function isWon {
+
+local row=$1
+local column=$2
+checkIsRowEqual $row
+local rowEqual=$?
+echo "column"$column
+checkIsColumnEqual $column
+local columnEqual=$?
+isDiagonal_1_Equal $row $column
+local diagonal_1_Equal=$?
+isDiagonal_2_Equal 
+local diagonal_2_Equal=$?
+
+if [ $rowEqual -eq 1 -o $columnEqual -eq 1 -o $diagonal_1_Equal -eq 1 -o $diagonal_2_Equal -eq 1 ]
+then
+	return 1
+else
+	return 0
+fi
+
 }
 
-function rowDesign() {
-	if [[ $boardCellsRow -ne 3 ]]
-	then
-		echo " __ "
-	fi
+
+function isTie {
+	local row
+	local column
+	for (( row=1;row<=3;row++ ))
+	do
+		for (( column=1;column<=3;column++ ))
+		do
+			if [[ "${board[$row,$column]}" = $SPACE ]]
+			then
+				return 0
+			fi
+		done
+	done
+	return 1
 }
 
-function playerChanceChoose() {
-	if [[ $symbolSelection -eq 1 ]]
-	then
-		playerGameIcon=X;
-		computerGameIcon=O;
-	else
-		playerGameIcon=O;
-		computerGameIcon=X;
-	fi
+function getDecision {
+
+local row=$1
+local column=$2
+isWon $row $column
+won=$?
+if [ $won -eq 1 ]
+then
+	echo "won"
+fi
+isTie
+tie=$?
+if [ $tie -eq 1 ]
+then
+	echo "tie"
+fi
+echo "turn"
 }
 
-function computerChanceChoose() {
-	if [[ $((RANDOM%2)) -eq 1 ]]
-	then
-		computerGameIcon=X;
-		playerGameIcon=O;
-	else
-		computerGameIcon=O;
-		playerGameIcon=X;
-	fi
-}
+initialiseEmptyBoard
+displayBoard
+playerSymbol=$(getSymbolForPlayer)
+echo $playerSymbol
+chance=$(getSymbolForPlayer)
+echo "chance given to "$chance
 
-resetPlayerBoard
-selectionForLXandLO
-displayBoardBox
-
-echo "Player gets $playerGameIcon"
-echo "Computer gets $computerGameIcon"
-
-#End of Use Case 02
+decision=$(getDecision 1 3)
+echo $decision
